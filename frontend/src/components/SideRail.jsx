@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { FileText, Table, Database, Code2, CheckCircle, LayoutList, Settings } from 'lucide-react'
-import { useTestMode } from '../utils/testMode'
 import { toast } from './ToastProvider'
 
 const EXAM_ITEMS = [
@@ -17,7 +16,6 @@ const ADMIN_ITEMS = [
 
 export default function SideRail({ mode = 'exam', activeKey }) {
   const navigate = useNavigate()
-  const { testMode } = useTestMode()
   const items = mode === 'admin' ? ADMIN_ITEMS : EXAM_ITEMS
 
   const handleItemClick = (item) => {
@@ -25,12 +23,7 @@ export default function SideRail({ mode = 'exam', activeKey }) {
       if (item.path) navigate(item.path)
       return
     }
-    // In test mode: allow developer to freely click between sections
-    if (testMode && item.path) {
-      navigate(item.path)
-      return
-    }
-    if (!testMode && item.key !== activeKey) {
+    if (item.key !== activeKey) {
       toast.info('Section navigation is locked. The section will automatically advance when the timer expires.')
     }
   }
@@ -42,8 +35,8 @@ export default function SideRail({ mode = 'exam', activeKey }) {
           key={key}
           className={`rail-btn ${activeKey === key ? 'active' : ''}`}
           onClick={() => handleItemClick({ path, key })}
-          title={testMode && path ? `${label} (Test Mode: Click to switch)` : label}
-          style={{ cursor: (testMode || mode === 'admin') && path ? 'pointer' : 'default' }}
+          title={label}
+          style={{ cursor: mode === 'admin' && path ? 'pointer' : 'default' }}
         >
           <Icon size={18} />
           <span className="rail-tooltip">{label}</span>

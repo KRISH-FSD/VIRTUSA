@@ -14,7 +14,7 @@ import { clearAllSectionTimers } from '../utils/sectionTimer'
 // ── Stage constants ───────────────────────────────────────────────────────────
 const STAGE_ENV   = 'environment'
 const STAGE_GUIDE = 'guidelines'
-const GUIDE_READ_SECONDS = 300
+const GUIDE_READ_SECONDS = 180  // 3 minutes mandatory read time
 
 // ── iOS 28 design tokens ──────────────────────────────────────────────────────
 const C = {
@@ -156,9 +156,15 @@ function StageEnvironment({ userId, testMode, onNext }) {
     setChecking(true)
     try {
       const r = await checkSystemEnvironment()
-      setApps(r.disallowed_apps || [])
-      setEnvClean(r.clean)
-    } catch { setEnvClean(true) }
+      // On cloud/Linux the server cannot inspect the candidate's local processes.
+      // If the API returns clean or no disallowed apps, treat as clean.
+      const detected = r.disallowed_apps || []
+      setApps(detected)
+      setEnvClean(r.clean !== false && detected.length === 0)
+    } catch {
+      // If API fails (e.g. cloud deployment can't check processes), proceed clean
+      setEnvClean(true)
+    }
     finally { setChecking(false) }
   }, [testMode])
 
@@ -260,9 +266,10 @@ function StageEnvironment({ userId, testMode, onNext }) {
 
 // ── STAGE 3: Guidelines ───────────────────────────────────────────────────────
 function StageGuidelines({ userId, testMode, onStartExam, loading }) {
-  const readDuration = testMode ? 3 : GUIDE_READ_SECONDS
+  const readDuration = testMode ? 5 : GUIDE_READ_SECONDS
   const [secsLeft, setSecsLeft] = useState(readDuration)
   const [canStart, setCanStart] = useState(false)
+  const [autoStartCount, setAutoStartCount] = useState(null) // countdown after read completes
 
   useEffect(() => {
     if (secsLeft <= 0) { setCanStart(true); return }
@@ -273,6 +280,23 @@ function StageGuidelines({ userId, testMode, onStartExam, loading }) {
     return () => clearInterval(t)
   }, [])
 
+  // Auto-start 10 seconds after the mandatory read time expires
+  useEffect(() => {
+    if (!canStart || loading) return
+    setAutoStartCount(10)
+    const t = setInterval(() => setAutoStartCount(c => {
+      if (c <= 1) { clearInterval(t); return 0 }
+      return c - 1
+    }), 1000)
+    return () => clearInterval(t)
+  }, [canStart])
+
+  useEffect(() => {
+    if (autoStartCount === 0 && !loading) {
+      onStartExam()
+    }
+  }, [autoStartCount, loading, onStartExam])
+
   const mm  = String(Math.floor(secsLeft / 60)).padStart(2, '0')
   const ss  = String(secsLeft % 60).padStart(2, '0')
   const pct = ((readDuration - secsLeft) / readDuration) * 100
@@ -281,7 +305,7 @@ function StageGuidelines({ userId, testMode, onStartExam, loading }) {
 
   return (
     <div style={{ ...overlay, alignItems: 'flex-start', overflowY: 'auto', paddingTop: 36, paddingBottom: 52 }}>
-      <div style={{ ...wrap, maxWidth: 520 }}>
+      <div style={{ ...wrap, maxWidth: 780 }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -400,12 +424,18 @@ function StageGuidelines({ userId, testMode, onStartExam, loading }) {
           {loading
             ? <><div className="spinner" style={{ borderTopColor: '#fff', width: 18, height: 18, borderWidth: 2 }} /> Starting…</>
             : canStart
-              ? <><Shield size={18} /> Start Examination</>
+              ? <><Shield size={18} /> {autoStartCount !== null && autoStartCount > 0 ? `Starting automatically in ${autoStartCount}s… Click to start now` : 'Start Examination'}</>
               : <><Clock size={16} /> Unlocks in {mm}:{ss}</>
           }
         </Btn>
 
-        <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: C.t3 }}>
+        {canStart && !loading && autoStartCount !== null && autoStartCount > 0 && (
+          <div style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: C.orange }}>
+            Exam will begin automatically in <strong>{autoStartCount}</strong> seconds
+          </div>
+        )}
+
+        <div style={{ marginTop: 12, textAlign: 'center', fontSize: 13, color: C.t3 }}>
           By proceeding you agree to all examination rules
         </div>
 
@@ -495,8 +525,8 @@ const overlay = {
 }
 
 const wrap = {
-  width: '100%', maxWidth: 420,
-  padding: '0 20px',
+  width: '100%', maxWidth: 700,
+  padding: '0 24px',
   margin: '0 auto',
 }
 
