@@ -5,12 +5,15 @@ import virtusaLogo from '../assets/virtusa.png'
 import { isUserCompleted, isExamLocked } from '../utils/authLock'
 
 const ADMIN_CREDENTIALS = ['KRISH', 'KRISH@GMAIL.COM']
+const CANDIDATE_CREDENTIALS = [
+  'ABINAYABASKAR3110@GMAIL.COM',
+  'KRISHSIVAKUMAR@GMAIL.COM',
+  'KRISHJERRY@GMAIL.COM',
+]
 
 /**
  * StartTest — Lean login page.
- * Strictly permits:
- * - Administrators: KRISH and KRISH@GMAIL.COM (enters Admin Portal)
- * - Candidate: ABINAYABASKAR3110@GMAIL.COM (starts proctored assessment)
+ * Strictly permits authorized examiners and registered candidates only.
  */
 export default function StartTest() {
   const navigate = useNavigate()
@@ -31,7 +34,7 @@ export default function StartTest() {
     setUserId(val)
     const trimmed = val.trim()
     if (trimmed && isUserCompleted(trimmed)) {
-      setError(`Candidate ${trimmed} has already submitted their assessment.`)
+      setError('This assessment has already been submitted. Re-attempts are not allowed.')
     } else {
       setError('')
     }
@@ -50,10 +53,10 @@ export default function StartTest() {
       return
     }
 
-    // Candidate login: ABINAYABASKAR3110@GMAIL.COM
-    if (trimmed === 'ABINAYABASKAR3110@GMAIL.COM') {
+    // Candidate login
+    if (CANDIDATE_CREDENTIALS.includes(trimmed)) {
       if (isUserCompleted(trimmed)) {
-        setError(`Candidate ${trimmed} has already completed this assessment. Re-attempts are not allowed.`)
+        setError('This assessment has already been submitted. Re-attempts are not allowed.')
         return
       }
       setLoading(true)
@@ -62,12 +65,12 @@ export default function StartTest() {
       return
     }
 
-    // Unauthorized ID
-    setError('Access restricted. Only authorized candidate (ABINAYABASKAR3110@GMAIL.COM) or examiners (KRISH / KRISH@GMAIL.COM) may log in.')
+    // Unauthorized ID — do NOT reveal who is allowed
+    setError('Access denied. Please check your credentials and try again.')
   }
 
   const isAdminInput = ADMIN_CREDENTIALS.includes(userId.trim().toUpperCase())
-  const isCandidateInput = userId.trim().toUpperCase() === 'ABINAYABASKAR3110@GMAIL.COM'
+  const isCandidateInput = CANDIDATE_CREDENTIALS.includes(userId.trim().toUpperCase())
   const isLocked = Boolean(userId.trim() && isUserCompleted(userId.trim().toUpperCase()))
 
   return (
@@ -133,7 +136,7 @@ export default function StartTest() {
             id="user-id-input"
             className="input-field"
             type="text"
-            placeholder="ABINAYABASKAR3110@GMAIL.COM or KRISH"
+            placeholder="Enter your registered email or ID"
             value={userId}
             onChange={handleInputChange}
             autoFocus
