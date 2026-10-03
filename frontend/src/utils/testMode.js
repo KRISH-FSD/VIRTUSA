@@ -3,11 +3,10 @@ import { useState, useEffect } from 'react'
 export function getTestMode() {
   try {
     const val = localStorage.getItem('codeeval_test_mode')
-    // Default to true during development testing so the developer can freely work
-    if (val === null) return true
+    if (val === null) return false
     return val === 'true'
   } catch {
-    return true
+    return false
   }
 }
 

@@ -1,20 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Maximize2, RefreshCw, Zap, Camera, RotateCcw, ChevronRight,
-  Clock, Shield, AlertTriangle, BookOpen, Code2, Database,
-  FileSpreadsheet, Lock, Eye, ArrowRight, Check, X,
-  CameraOff, ShieldCheck, CheckCircle, XCircle, Upload,
+  Maximize2, RefreshCw, Zap, ChevronRight,
+  Clock, Shield, BookOpen, Code2, Database,
+  FileSpreadsheet, Lock, Eye, Check, X,
+  ShieldCheck, CheckCircle, XCircle,
 } from 'lucide-react'
 import virtusaLogo from '../assets/virtusa.png'
-import { checkSystemEnvironment, closeDisallowedApps, startExam, uploadIDPhoto, deleteIDPhoto } from '../services/api'
+import { checkSystemEnvironment, closeDisallowedApps, startExam } from '../services/api'
 import { markExamCompleted, isExamLocked } from '../utils/authLock'
-import { useTestMode } from '../utils/testMode'
 import { clearAllSectionTimers } from '../utils/sectionTimer'
-import TestModeToggle from '../components/TestModeToggle'
 
 // ── Stage constants ───────────────────────────────────────────────────────────
-const STAGE_PHOTO = 'photo'
 const STAGE_ENV   = 'environment'
 const STAGE_GUIDE = 'guidelines'
 const GUIDE_READ_SECONDS = 300
@@ -216,7 +213,6 @@ function StageEnvironment({ userId, testMode, onNext }) {
 
   return (
     <div style={overlay}>
-      <TestModeToggle />
       <div style={wrap}>
 
         <StageHeader
@@ -421,7 +417,6 @@ function StageGuidelines({ userId, testMode, onStartExam, loading }) {
 
 // ── Main orchestrator ─────────────────────────────────────────────────────────
 export default function PreExamFlow() {
-  const { testMode } = useTestMode()
   const navigate     = useNavigate()
   const [stage, setStage]   = useState(STAGE_ENV)
   const [userId, setUserId] = useState('')
@@ -485,8 +480,8 @@ export default function PreExamFlow() {
 
   return (
     <>
-      {stage === STAGE_ENV   && <StageEnvironment userId={userId} testMode={testMode} onNext={() => setStage(STAGE_GUIDE)} />}
-      {stage === STAGE_GUIDE && <StageGuidelines userId={userId} testMode={testMode} onStartExam={handleStartExam} loading={loading} />}
+      {stage === STAGE_ENV   && <StageEnvironment userId={userId} testMode={false} onNext={() => setStage(STAGE_GUIDE)} />}
+      {stage === STAGE_GUIDE && <StageGuidelines userId={userId} testMode={false} onStartExam={handleStartExam} loading={loading} />}
     </>
   )
 }

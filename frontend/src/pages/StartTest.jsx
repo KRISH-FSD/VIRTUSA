@@ -2,18 +2,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, ShieldAlert, Lock, Shield } from 'lucide-react'
 import virtusaLogo from '../assets/virtusa.png'
-import { isUserCompleted, getLastCompletedUser, isExamLocked } from '../utils/authLock'
-import { useTestMode } from '../utils/testMode'
-import TestModeToggle from '../components/TestModeToggle'
+import { isUserCompleted, isExamLocked } from '../utils/authLock'
+
+const ADMIN_CREDENTIALS = ['KRISH', 'KRISH@GMAIL.COM']
 
 /**
  * StartTest — Lean login page.
- * Only collects User ID and validates it.
- * All pre-exam security (env check, ID photo, guidelines) is handled
- * by PreExamFlow at /exam/precheck.
+ * Strictly permits:
+ * - Administrators: KRISH and KRISH@GMAIL.COM (enters Admin Portal)
+ * - Candidate: ABINAYABASKAR3110@GMAIL.COM (starts proctored assessment)
  */
 export default function StartTest() {
-  const { testMode } = useTestMode()
   const navigate = useNavigate()
   const [userId, setUserId] = useState('')
   const [error, setError] = useState('')
@@ -43,10 +42,10 @@ export default function StartTest() {
     const trimmed = userId.trim().toUpperCase()
     if (!trimmed) { setError('User ID or Email is required'); return }
 
-    // Admin login
-    if (trimmed === 'KRISH') {
+    // Admin / Examiner login: KRISH or KRISH@GMAIL.COM
+    if (ADMIN_CREDENTIALS.includes(trimmed)) {
       setLoading(true)
-      sessionStorage.setItem('admin_auth', 'KRISH')
+      sessionStorage.setItem('admin_auth', trimmed)
       navigate('/admin')
       return
     }
@@ -63,23 +62,11 @@ export default function StartTest() {
       return
     }
 
-    // In Test Mode: allow dev testing with custom IDs
-    if (testMode) {
-      if (isUserCompleted(trimmed)) {
-        setError(`Candidate ${trimmed} has already completed this assessment. Re-attempts are not allowed.`)
-        return
-      }
-      setLoading(true)
-      sessionStorage.setItem('preexam_userId', trimmed)
-      navigate('/exam/precheck')
-      return
-    }
-
     // Unauthorized ID
-    setError('Access restricted. Only authorized candidate (ABINAYABASKAR3110@GMAIL.COM) or administrator (KRISH) may log in.')
+    setError('Access restricted. Only authorized candidate (ABINAYABASKAR3110@GMAIL.COM) or examiners (KRISH / KRISH@GMAIL.COM) may log in.')
   }
 
-  const isAdminInput = userId.trim().toUpperCase() === 'KRISH'
+  const isAdminInput = ADMIN_CREDENTIALS.includes(userId.trim().toUpperCase())
   const isCandidateInput = userId.trim().toUpperCase() === 'ABINAYABASKAR3110@GMAIL.COM'
   const isLocked = Boolean(userId.trim() && isUserCompleted(userId.trim().toUpperCase()))
 
@@ -90,8 +77,6 @@ export default function StartTest() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'var(--font-ui)',
     }}>
-      <TestModeToggle />
-
       {/* Subtle grid overlay */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',

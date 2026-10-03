@@ -55,7 +55,7 @@ export default function AdminAttempts() {
         background: 'var(--bg-panel2)', display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <span style={{ fontFamily: 'var(--font-code)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-          CANDIDATE ATTEMPTS (ADMIN: KRISH)
+          CANDIDATE ATTEMPTS (ADMIN: {sessionStorage.getItem('admin_auth') || 'KRISH'})
         </span>
         <span className="badge badge-progress" style={{ fontSize: 10 }}>{attempts.length}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>

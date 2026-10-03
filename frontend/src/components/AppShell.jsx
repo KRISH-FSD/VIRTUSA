@@ -2,7 +2,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import TopBar from './TopBar'
 import SideRail from './SideRail'
 import ProctorGuard from './ProctorGuard'
-import TestModeToggle from './TestModeToggle'
 
 function getSession() {
   try { return JSON.parse(sessionStorage.getItem('attempt')) } catch { return null }
@@ -41,7 +40,6 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
-      <TestModeToggle />
       {!isAdmin && <ProctorGuard active={true} />}
       <TopBar
         userId={session?.userId}
