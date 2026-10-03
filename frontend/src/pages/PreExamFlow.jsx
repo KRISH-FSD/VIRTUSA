@@ -14,7 +14,7 @@ import { clearAllSectionTimers } from '../utils/sectionTimer'
 // ── Stage constants ───────────────────────────────────────────────────────────
 const STAGE_ENV   = 'environment'
 const STAGE_GUIDE = 'guidelines'
-const GUIDE_READ_SECONDS = 180  // 3 minutes mandatory read time
+const GUIDE_READ_SECONDS = 60  // 1 minute mandatory read time
 
 // ── iOS 28 design tokens ──────────────────────────────────────────────────────
 const C = {

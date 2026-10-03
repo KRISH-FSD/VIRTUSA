@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, ShieldAlert, Lock, Shield, Monitor, BookOpen, Code2, Database, FileSpreadsheet, Users } from 'lucide-react'
+import { ArrowRight, ShieldAlert, Lock, Shield } from 'lucide-react'
 import virtusaLogo from '../assets/virtusa.png'
 import { isUserCompleted, isExamLocked } from '../utils/authLock'
 
 const ADMIN_CREDENTIALS = ['KRISH', 'KRISH@GMAIL.COM']
 
-// Pattern: KRISH1@GMAIL.COM … KRISH100@GMAIL.COM
 function isPatternCandidate(trimmed) {
   const m = trimmed.match(/^KRISH(\d+)@GMAIL\.COM$/)
   if (!m) return false
@@ -24,18 +23,96 @@ function isAuthorizedCandidate(trimmed) {
   return FIXED_CANDIDATES.includes(trimmed) || isPatternCandidate(trimmed)
 }
 
-const EXAM_SECTIONS = [
-  { icon: BookOpen,        label: 'MCQ',    time: '40 min', q: '30 Questions', color: '#0A84FF' },
-  { icon: FileSpreadsheet, label: 'Excel',  time: '25 min', q: '10 Questions', color: '#30D158' },
-  { icon: Database,        label: 'SQL',    time: '25 min', q: '10 Questions', color: '#FF9F0A' },
-  { icon: Code2,           label: 'Coding', time: '40 min', q: '2 Problems',   color: '#BF5AF2' },
+// ── Animated code rain canvas ─────────────────────────────────────────────────
+const CODE_SNIPPETS = [
+  'function assess()', 'const result =', 'return score;', 'SELECT *', 'WHERE id =',
+  'def evaluate():', 'import sys', 'class Exam:', 'for i in range', 'if __name__',
+  '01101001', '10110100', 'npm run', 'git commit', 'pip install',
+  'O(n log n)', 'O(1)', 'hashMap.get', 'async/await', 'try { }',
+  'catch(err)', '.then(res)', 'console.log', 'print(out)', 'fprintf',
+  '// TODO', '/* SECURE */', '#!/usr/bin', 'export default', 'useState',
+  'useEffect', 'className=', 'borderRadius', 'flexDirection', 'backgroundColor',
+  'JOIN ON', 'GROUP BY', 'ORDER BY', 'INNER JOIN', 'CREATE TABLE',
+  'vlookup()', 'INDEX(MATCH)', 'SUMIF()', '=A1+B1', 'pivot_table',
 ]
+
+function CodeRainCanvas() {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+
+    let W = canvas.width = window.innerWidth
+    let H = canvas.height = window.innerHeight
+
+    const NEON_COLORS = [
+      'rgba(0,255,136,',
+      'rgba(0,200,255,',
+      'rgba(120,80,255,',
+      'rgba(255,60,180,',
+      'rgba(255,200,0,',
+    ]
+
+    const particles = Array.from({ length: 55 }, (_, i) => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      text: CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)],
+      speed: 0.18 + Math.random() * 0.38,
+      opacity: 0.045 + Math.random() * 0.12,
+      size: 10 + Math.floor(Math.random() * 6),
+      colorIdx: Math.floor(Math.random() * NEON_COLORS.length),
+      drift: (Math.random() - 0.5) * 0.12,
+    }))
+
+    let animId
+    function draw() {
+      ctx.clearRect(0, 0, W, H)
+      for (const p of particles) {
+        ctx.font = `${p.size}px 'JetBrains Mono', 'Fira Code', monospace`
+        ctx.fillStyle = NEON_COLORS[p.colorIdx] + p.opacity + ')'
+        ctx.fillText(p.text, p.x, p.y)
+        p.y -= p.speed
+        p.x += p.drift
+        if (p.y < -30) {
+          p.y = H + 30
+          p.x = Math.random() * W
+          p.text = CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)]
+        }
+        if (p.x < -200) p.x = W + 10
+        if (p.x > W + 200) p.x = -10
+      }
+      animId = requestAnimationFrame(draw)
+    }
+
+    draw()
+
+    const onResize = () => {
+      W = canvas.width = window.innerWidth
+      H = canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+    />
+  )
+}
 
 export default function StartTest() {
   const navigate = useNavigate()
   const [userId, setUserId] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [focused, setFocused] = useState(false)
 
   useEffect(() => {
     if (isExamLocked()) navigate('/exam/completed', { replace: true })
@@ -86,141 +163,122 @@ export default function StartTest() {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
-      background: '#0d1117',
-      display: 'flex', fontFamily: 'var(--font-ui)',
+      background: 'radial-gradient(ellipse at 50% 40%, #080f1a 0%, #030508 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'var(--font-ui)',
       overflow: 'hidden',
     }}>
-      {/* LEFT PANEL — Branding */}
+
+      {/* Animated code rain */}
+      <CodeRainCanvas />
+
+      {/* Radial glow behind card */}
       <div style={{
-        flex: '1 1 0', minWidth: 0,
-        background: 'linear-gradient(160deg, #0f1b2d 0%, #0d1117 60%, #111827 100%)',
-        borderRight: '1px solid #1e2a3a',
-        display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', alignItems: 'flex-start',
-        padding: '60px 64px',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Background decoration */}
+        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,180,255,0.07) 0%, transparent 70%)',
+      }} />
+
+      {/* Main Card */}
+      <div
+        className="fade-in"
+        style={{
+          position: 'relative', zIndex: 2,
+          width: '100%', maxWidth: 440,
+          margin: '0 auto',
+          background: 'rgba(10, 14, 22, 0.82)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 24,
+          padding: '52px 48px 44px',
+          backdropFilter: 'blur(48px)',
+          WebkitBackdropFilter: 'blur(48px)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.75), 0 0 80px rgba(0,180,255,0.06)',
+        }}
+      >
+        {/* Top neon line */}
         <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(10,132,255,0.08) 0%, transparent 60%), radial-gradient(circle at 80% 70%, rgba(48,209,88,0.05) 0%, transparent 60%)',
-        }} />
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          backgroundImage: 'linear-gradient(rgba(88,166,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(88,166,255,0.025) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
+          position: 'absolute', top: 0, left: '10%', right: '10%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(0,200,255,0.5), rgba(120,80,255,0.5), transparent)',
+          borderRadius: 1,
         }} />
 
         {/* Logo */}
-        <img
-          src={virtusaLogo}
-          alt="Virtusa"
-          style={{ height: 64, objectFit: 'contain', marginBottom: 48, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}
-        />
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: '#0A84FF', textTransform: 'uppercase', marginBottom: 16 }}>
-            Talent Acquisition
-          </div>
-          <div style={{ fontSize: 38, fontWeight: 800, color: '#ffffff', lineHeight: 1.15, letterSpacing: '-0.03em', marginBottom: 16 }}>
-            Technical<br />Assessment<br />Platform
-          </div>
-          <div style={{ fontSize: 16, color: 'rgba(235,235,245,0.5)', lineHeight: 1.7, maxWidth: 380, marginBottom: 48 }}>
-            A secure, proctored evaluation platform to assess programming, analytical, and problem-solving skills.
-          </div>
-
-          {/* Section badges */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {EXAM_SECTIONS.map((s) => {
-              const Icon = s.icon
-              return (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                    background: `${s.color}18`, border: `1px solid ${s.color}30`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon size={16} color={s.color} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#e6edf3' }}>{s.label}</span>
-                    <span style={{ fontSize: 12, color: 'rgba(235,235,245,0.35)', marginLeft: 8 }}>{s.q}</span>
-                  </div>
-                  <div style={{ fontSize: 12, fontFamily: 'var(--font-code)', color: 'rgba(235,235,245,0.35)', fontWeight: 600 }}>{s.time}</div>
-                </div>
-              )
-            })}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <img
+            src={virtusaLogo}
+            alt="Virtusa"
+            style={{
+              height: 72, maxWidth: 240, width: 'auto',
+              objectFit: 'contain', display: 'block',
+              margin: '0 auto 14px',
+              filter: 'drop-shadow(0 0 20px rgba(0,180,255,0.35))',
+            }}
+          />
+          <div style={{
+            fontSize: 10, letterSpacing: '0.22em', fontWeight: 700,
+            color: 'rgba(0,200,255,0.65)', textTransform: 'uppercase',
+            fontFamily: 'var(--font-code)',
+          }}>
+            Technical Assessment Platform
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ position: 'absolute', bottom: 32, left: 64, right: 64, display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
-          <Monitor size={13} color="rgba(235,235,245,0.25)" />
-          <span style={{ fontSize: 11, color: 'rgba(235,235,245,0.25)', fontFamily: 'var(--font-code)' }}>
-            Proctored · Timed · Secure
-          </span>
-        </div>
-      </div>
-
-      {/* RIGHT PANEL — Login Form */}
-      <div style={{
-        width: 480, flexShrink: 0,
-        display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', alignItems: 'stretch',
-        padding: '60px 56px',
-        background: '#161b22',
-        overflowY: 'auto',
-      }}>
-        {/* Header */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#e6edf3', letterSpacing: '-0.02em', marginBottom: 8 }}>
-            Candidate Sign In
-          </div>
-          <div style={{ fontSize: 14, color: '#8b949e' }}>
-            Enter your registered email to begin the assessment.
-          </div>
-        </div>
-
-        <div style={{ height: 1, background: 'linear-gradient(90deg, #30363d, transparent)', marginBottom: 32 }} />
+        {/* Divider */}
+        <div style={{
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+          marginBottom: 32,
+        }} />
 
         {/* Form */}
         <form onSubmit={handleStart}>
           <label style={{
-            display: 'block', fontSize: 11, fontWeight: 700,
-            letterSpacing: '0.1em', color: '#8b949e',
-            textTransform: 'uppercase', marginBottom: 8,
+            display: 'block', fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.15em', color: 'rgba(235,235,245,0.4)',
+            textTransform: 'uppercase', marginBottom: 10,
+            fontFamily: 'var(--font-code)',
           }}>
-            Login ID / Email Address
+            Email Address
           </label>
 
-          <input
-            id="user-id-input"
-            className="input-field"
-            type="text"
-            placeholder="Enter your registered email or ID"
-            value={userId}
-            onChange={handleInputChange}
-            autoFocus
-            autoComplete="off"
-            spellCheck={false}
-            style={{
-              marginBottom: 12, fontSize: 15,
-              padding: '13px 16px', borderRadius: 8,
-              letterSpacing: '0.01em',
-            }}
-          />
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <input
+              id="user-id-input"
+              type="text"
+              placeholder="yourname@example.com"
+              value={userId}
+              onChange={handleInputChange}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                fontSize: 15, padding: '14px 18px',
+                background: 'rgba(255,255,255,0.04)',
+                border: `1px solid ${focused ? 'rgba(0,200,255,0.45)' : 'rgba(255,255,255,0.10)'}`,
+                borderRadius: 12,
+                color: '#e6edf3',
+                fontFamily: 'var(--font-code)',
+                letterSpacing: '0.02em',
+                outline: 'none',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                boxShadow: focused ? '0 0 0 3px rgba(0,200,255,0.10), inset 0 1px 2px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.3)',
+              }}
+            />
+          </div>
 
           {error && (
             <div style={{
-              color: '#f85149', fontSize: 12,
+              color: '#ff6b6b', fontSize: 12,
               fontFamily: 'var(--font-code)',
-              marginBottom: 16, padding: '10px 14px',
-              background: 'rgba(248,81,73,0.08)',
-              border: '1px solid rgba(248,81,73,0.25)',
-              borderRadius: 8,
+              marginBottom: 14, padding: '10px 14px',
+              background: 'rgba(255,69,58,0.08)',
+              border: '1px solid rgba(255,69,58,0.22)',
+              borderRadius: 10,
               display: 'flex', alignItems: 'flex-start', gap: 8, lineHeight: 1.6,
             }}>
-              <ShieldAlert size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+              <ShieldAlert size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               <div>{error}</div>
             </div>
           )}
@@ -230,74 +288,64 @@ export default function StartTest() {
             type="submit"
             disabled={loading || isLocked}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              padding: '13px 16px', fontSize: 14, fontWeight: 700,
-              color: '#ffffff',
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '14px 18px', fontSize: 14, fontWeight: 700,
+              color: '#fff',
               background: isLocked
-                ? '#21262d'
+                ? 'rgba(255,255,255,0.06)'
                 : isAdminInput
-                  ? 'linear-gradient(135deg, #238636 0%, #196c2e 100%)'
-                  : 'linear-gradient(135deg, #1a7fde 0%, #0d5fab 100%)',
-              border: isLocked ? '1px solid #30363d' : isAdminInput ? '1px solid rgba(63,185,80,0.5)' : '1px solid rgba(88,166,255,0.5)',
-              borderRadius: 8,
+                  ? 'linear-gradient(135deg, #238636, #196c2e)'
+                  : 'linear-gradient(135deg, #0A84FF 0%, #005FCC 100%)',
+              border: 'none', borderRadius: 12,
               cursor: isLocked ? 'not-allowed' : 'pointer',
-              opacity: isLocked ? 0.5 : 1,
-              boxShadow: isLocked ? 'none' : isAdminInput ? '0 4px 20px rgba(35,134,54,0.3)' : '0 4px 20px rgba(26,127,222,0.3)',
-              transition: 'all 0.15s ease',
-              marginTop: 4,
+              opacity: (loading || isLocked) ? 0.55 : 1,
+              boxShadow: isLocked ? 'none' : isAdminInput
+                ? '0 4px 24px rgba(35,134,54,0.35)'
+                : '0 4px 24px rgba(10,132,255,0.4), 0 0 40px rgba(10,132,255,0.12)',
+              transition: 'all 0.18s ease',
+              letterSpacing: '0.01em',
             }}
           >
             {loading ? (
-              <><div className="spinner" style={{ borderTopColor: '#fff', width: 16, height: 16, borderWidth: 2 }} /> Processing…</>
+              <><div className="spinner" style={{ borderTopColor: '#fff', width: 16, height: 16, borderWidth: 2 }} /> Verifying…</>
             ) : isLocked ? (
-              <><Lock size={14} /> Exam Locked</>
+              <><Lock size={15} /> Exam Locked</>
             ) : isAdminInput ? (
-              <><Shield size={14} /> Enter Examiner Portal <ArrowRight size={14} /></>
+              <><Shield size={15} /> Enter Examiner Portal <ArrowRight size={15} /></>
             ) : (
-              <><Shield size={14} /> Begin Assessment <ArrowRight size={14} /></>
+              <><Shield size={15} /> Begin Assessment <ArrowRight size={15} /></>
             )}
           </button>
         </form>
 
-        {/* Stats row */}
+        {/* Footer */}
         <div style={{
-          marginTop: 32, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+          marginTop: 28,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          fontSize: 11, color: 'rgba(235,235,245,0.2)', fontFamily: 'var(--font-code)',
         }}>
-          {[
-            { label: 'Total Duration', value: '2 hrs 10 min' },
-            { label: 'Sections', value: '4 Sections' },
-            { label: 'Questions', value: '52 Questions' },
-            { label: 'Proctored', value: 'Yes — Live' },
-          ].map(({ label, value }) => (
-            <div key={label} style={{
-              padding: '12px 14px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid #21262d',
-              borderRadius: 8,
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#e6edf3' }}>{value}</div>
-            </div>
-          ))}
+          <Lock size={11} />
+          <span>Proctored · Monitored · Secure</span>
         </div>
 
-        {/* Security notice */}
+        {/* Bottom neon line */}
         <div style={{
-          marginTop: 32, padding: '12px 16px',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid #21262d',
-          borderRadius: 8,
-          fontSize: 11, color: '#8b949e', lineHeight: 1.7,
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-        }}>
-          <Lock size={12} color="#8b949e" style={{ marginTop: 2, flexShrink: 0 }} />
-          <span>This assessment is proctored. Copy-paste, screenshots, and tab-switching are disabled. Your session is monitored for academic integrity.</span>
-        </div>
-
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 11, color: '#484f58' }}>
-          © {new Date().getFullYear()} Virtusa Corporation · Powered by CodeEval
-        </div>
+          position: 'absolute', bottom: 0, left: '20%', right: '20%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(120,80,255,0.3), transparent)',
+          borderRadius: 1,
+        }} />
       </div>
+
+      <style>{`
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
+        }
+        #user-id-input::placeholder {
+          color: rgba(235,235,245,0.2);
+          font-family: 'JetBrains Mono', monospace;
+        }
+      `}</style>
     </div>
   )
 }
