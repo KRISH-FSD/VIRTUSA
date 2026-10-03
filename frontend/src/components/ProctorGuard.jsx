@@ -200,8 +200,20 @@ export default function ProctorGuard({ active = true }) {
         return false
       }
 
-      // Block Escape & F11
-      if (e.key === 'Escape' || e.key === 'F11') {
+      // Handle F11 specifically to trigger HTML5 Fullscreen
+      if (e.key === 'F11') {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.warn('F11 fullscreen failed:', err)
+          })
+        }
+        return false
+      }
+
+      // Block Escape
+      if (e.key === 'Escape') {
         e.preventDefault()
         e.stopPropagation()
         return false
